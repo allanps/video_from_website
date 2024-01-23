@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./local_app/Dockerfile
+    image: video_from_website:latest
+    container_name: video_from_website_container
+    volumes:
+      - .:/usr/src/app
+    ports:
+      - "5001:5001" # Replace with the ports your app uses, if any

@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  service1:
+    build:
+      context: ./api/without-gpu
+    image: api_without_gpu
+    mem_limit: 10g
+    ports:
+      - "5000:5000"
+
+  service2:
+    build:
+      context: ./website
+    image: website_without_gpu
+    ports:
+      - "3000:3000"

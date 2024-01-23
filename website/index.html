@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transcript</title>
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg"></script>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
+    />
+  </head>
+  <body>
+    <div>
+      <div class="bg-dark py-4">
+        <div class="container">
+          <h1 class="h3 text-white mb-0">Transcript</h1>
+        </div>
+      </div>
+      <div class="bg-light py-4">
+        <div class="container">
+          <form class="d-flex align-items-center">
+            <div class="me-2">
+              <input
+                type="text"
+                class="form-control"
+                id="url"
+                name="url"
+                placeholder="https://www.example.com/"
+                required
+                value="https://databricks.com/"
+              />
+            </div>
+            <button
+              type="button"
+              class="btn btn-primary"
+              onclick="submitForm()"
+            >
+              Search
+            </button>
+          </form>
+        </div>
+      </div>
+      <div class="container d-none py-4" id="container"></div>
+      <div class="d-none text-center py-4" id="loading">
+        <i class="fa fa-spinner fa-spin fa-3x"></i>
+      </div>
+    </div>
+
+    <script>
+      function getBaseURL(nome) {
+        const urlSearchParams = new URLSearchParams(window.location.search);
+        return urlSearchParams.get(nome);
+      }
+
+      const default_url = "http://64.23.153.95:5000";
+
+      const url = getBaseURL("base_url");
+
+      const base_url = url || default_url;
+      console.log(base_url);
+
+      const container = document.getElementById("container");
+      const loading = document.getElementById("loading");
+
+      function submitForm() {
+        container.classList.add("d-none");
+        container.innerHTML = "";
+
+        loading.classList.remove("d-none");
+
+        getSegments();
+      }
+
+      function getSegments() {
+        const input_url = document.getElementById("url").value;
+
+        if (!input_url) {
+          alert("url is required.");
+
+          container.classList.remove("d-none");
+          loading.classList.add("d-none");
+
+          return;
+        }
+
+        axios
+          .get(`${base_url}/transcript?url=${input_url}`)
+          .then(function async(response) {
+            const items = response.data;
+
+            if (items && items.segments.length > 0) {
+              const buttonContainer = document.createElement("div");
+              buttonContainer.classList.add("list-group");
+
+              container.appendChild(buttonContainer);
+
+              items.segments.forEach(function (item, index) {
+                const button = generateItemButton(item, index);
+                buttonContainer.appendChild(button);
+              });
+            } else {
+              container.innerHTML =
+                "<p class='text-danger my-4'>There were difficulties creating segments for this URL.</p>";
+            }
+
+            container.classList.remove("d-none");
+            loading.classList.add("d-none");
+          })
+          .catch(function (error) {
+            console.error("Request error:", error);
+
+            container.classList.remove("d-none");
+            loading.classList.add("d-none");
+
+            container.innerHTML =
+              "<p class='text-danger my-4'>There were difficulties creating segments for this URL.</p>";
+          });
+      }
+
+      function generateItemButton(item, index) {
+        const button = document.createElement("button");
+
+        button.type = "button";
+        button.classList.add("list-group-item", "list-group-item-action");
+        button.textContent = item;
+        button.addEventListener("click", async function () {
+          container.classList.add("d-none");
+          container.innerHTML = "";
+
+          loading.classList.remove("d-none");
+
+          axios
+            .get(`${base_url}/process_video?text=${item}`)
+            .then(function async(response) {
+              const { output_video_file } = response.data;
+
+              container.innerHTML = `<div class=my-2><div><a class="my-2 btn btn-success"download href="${base_url}/${output_video_file}">Download do vídeo</a></div></div>`;
+
+              container.classList.remove("d-none");
+              loading.classList.add("d-none");
+            })
+            .catch(function (error) {
+              console.error("Request error:", error);
+
+              container.classList.remove("d-none");
+              loading.classList.add("d-none");
+
+              container.innerHTML =
+                "<p class='text-danger my-4'>Unable to create a video.</p>";
+            });
+
+          container.classList.remove("d-none");
+          loading.classList.add("d-none");
+        });
+
+        return button;
+      }
+    </script>
+  </body>
+</html>
